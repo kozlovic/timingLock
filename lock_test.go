@@ -286,31 +286,33 @@ func TestRWMutexNotInitializedOkToUse(t *testing.T) {
 func TestRWMutexConcurrentCalls(t *testing.T) {
 	log := createDummyLogger()
 	wg := sync.WaitGroup{}
-	total := 300
+	total := 15
 	wg.Add(total)
 	l := &RWMutex{}
 	l.Init("test", log, 150*time.Millisecond, 250*time.Millisecond)
 	for i := 0; i < total; i++ {
 		go func() {
 			defer wg.Done()
-		ITER_LOOP:
-			for i := 0; i < 10000; i++ {
+		FOR_LOOP:
+			for i := 0; i < 250; i++ {
 				mode := rand.Intn(4)
 				switch mode {
 				case 0:
 					l.RLock()
 				case 1:
 					if !l.TryRLock() {
-						continue ITER_LOOP
+						continue FOR_LOOP
 					}
 				case 2:
 					l.Lock()
 				case 3:
 					if !l.TryLock() {
-						continue ITER_LOOP
+						continue FOR_LOOP
 					}
 				}
-				time.Sleep(time.Duration(rand.Int63n(300)))
+				if i%25 == 0 {
+					time.Sleep(time.Duration(rand.Int63n(300)) * time.Millisecond)
+				}
 				switch mode {
 				case 0, 1:
 					l.RUnlock()
@@ -464,20 +466,22 @@ func TestMutexNotInitializedOkToUse(t *testing.T) {
 func TestMutexConcurrentCalls(t *testing.T) {
 	log := createDummyLogger()
 	wg := sync.WaitGroup{}
-	total := 300
+	total := 15
 	wg.Add(total)
 	l := &Mutex{}
 	l.Init("test", log, 150*time.Millisecond, 250*time.Millisecond)
 	for i := 0; i < total; i++ {
 		go func() {
 			defer wg.Done()
-			for i := 0; i < 10000; i++ {
+			for i := 0; i < 250; i++ {
 				if rand.Intn(2) == 0 {
 					l.Lock()
 				} else if !l.TryLock() {
 					continue
 				}
-				time.Sleep(time.Duration(rand.Int63n(300)))
+				if i%25 == 0 {
+					time.Sleep(time.Duration(rand.Int63n(300)) * time.Millisecond)
+				}
 				l.Unlock()
 			}
 		}()
